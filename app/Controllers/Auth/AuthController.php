@@ -14,7 +14,6 @@ use Nette\Mail\SmtpMailer;
 
 class AuthController
 {
-  // protected $view;
   protected $customResponse;
   protected $validator;
   protected $mailer;
