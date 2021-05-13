@@ -67,7 +67,7 @@ class AuthController
       ->setHTMLBody("Hello, to confirm this Email insert this code: <br />
       <ol>
       <li>Go to " . $_ENV['BASE_URL'] . "/auth/confirm.</li>
-      <li>Insert the following code" . "<b>" . $activCode. "</b>" . " to verify your registration.</li>
+      <li>Insert the following code " . "<b>" . $activCode. "</b>" . " to verify your registration.</li>
       </ol>");
 
     $this->mailer->send($mail);
