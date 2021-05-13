@@ -56,9 +56,14 @@ class AuthController
       'activ_code' => $activCode
     ]);
 
-    $portal = Portal::create([
-      'name' => $_SERVER['HTTP_HOST']
-    ]);
+    $portalExists = Portal::where('name', '=', $_SERVER['HTTP_HOST'])->count();
+
+    if($portalExists == false)
+    {
+      $portal = Portal::create([
+        'name' => $_SERVER['HTTP_HOST']
+      ]);
+    }
 
     $mail = new Message;
     $mail->setFrom($_ENV['MAIL_USERNAME'])
@@ -163,8 +168,8 @@ class AuthController
 
     $responseMessage = "Confirmation was successful";
 
-    $_SESSION['email'] = $user->value('email');
-  
+    $_SESSION['email'] = $user['email'];
+
     return $this->customResponse->is201Response($response, $responseMessage);
   }
 }
