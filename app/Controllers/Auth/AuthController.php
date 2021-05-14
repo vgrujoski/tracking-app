@@ -124,16 +124,19 @@ class AuthController
     if($checkCode == false)
     {
       $responseMessage = "Invalid activation code";
-      return $this->customResponse->is400Response($response, $responseMessage);
+    } else if($checkCode == true) {
+      $user = User::where('activ_code', $request->getParam('code'))->first();
+
+      if($user['activ'] == 0)
+      {
+        $user->activ = 1;
+        $user->save();
+        $_SESSION['email'] = $user['email'];
+        $responseMessage = "Confirmation was successful";
+      } else {
+        $responseMessage = "This account is already activated";
+      };
     };
-
-    $user = User::where('activ_code', $request->getParam('code'))->first();
-    $user->activ = 1;
-    $user->save();
-
-    $responseMessage = "Confirmation was successful";
-
-    $_SESSION['email'] = $user['email'];
 
     return $this->customResponse->is201Response($response, $responseMessage);
   }
