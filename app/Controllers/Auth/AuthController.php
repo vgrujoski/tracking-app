@@ -109,9 +109,14 @@ class AuthController
 
   public function confirmEmail($request, $response)
   {
-    if (!$request->getParam('code')) {
-      $responseMessage = "Invalid activation code";
-      return $this->customResponse->is400Response($response, $responseMessage);
+    $this->validator->validate($request, [
+      "code"=>v::notEmpty()
+    ]);
+
+    if($this->validator->failed())
+    {
+      $responseMessage = $this->validator->errors;
+      return $this->customResponse->is422Response($response, $responseMessage);
     }
 
     $checkCode = CheckActivationCode::checkCode($request->getParam('code'));
