@@ -3,7 +3,6 @@
 namespace App\Controllers\Auth;
 
 use App\Models\User;
-use App\Models\Portal;
 use App\Requests\CustomRequestHandler;
 use App\Response\CustomResponse;
 use App\Controllers\Auth\GenerateTokenController;
@@ -11,6 +10,10 @@ use Respect\Validation\Validator as v;
 use App\Validation\Validator;
 use Nette\Mail\Message;
 use Nette\Mail\SmtpMailer;
+use App\Helpers\EmailExists;
+use App\Helpers\PortalExists;
+use App\Helpers\VerifyAccount;
+use App\Helpers\CheckActivationCode;
 
 class AuthController
 {
@@ -40,7 +43,7 @@ class AuthController
     }
 
     // Validate if email addrress already exists
-    if($this->EmailExists(CustomRequestHandler::getParam($request, "email")))
+    if(EmailExists::checkEmail(CustomRequestHandler::getParam($request, "email")))
     {
       $responseMessage = "This email alreaedy exists";
       return $this->customResponse->is400Response($response, $responseMessage);
@@ -55,14 +58,8 @@ class AuthController
       'activ_code' => $activCode
     ]);
 
-    $portalExists = Portal::where('name', '=', $_SERVER['HTTP_HOST'])->count();
-
-    if($portalExists == false)
-    {
-      $portal = Portal::create([
-        'name' => $_SERVER['HTTP_HOST']
-      ]);
-    }
+    // Check if portal exists already
+    PortalExists::checkPortal($_SERVER['HTTP_HOST']);
 
     $mail = new Message;
     $mail->setFrom($_ENV['MAIL_USERNAME'])
@@ -95,7 +92,7 @@ class AuthController
       return $this->customResponse->is400Response($response, $responseMessage);
     }
 
-    $verifyAccount = $this->verifyAccount(
+    $verifyAccount = VerifyAccount::verifyAccount(
       CustomRequestHandler::getParam($request, "email"), CustomRequestHandler::getParam($request, "password")
     );
 
@@ -110,56 +107,20 @@ class AuthController
     return $this->customResponse->is201Response($response, $responseMessage);
   }
 
-  public function EmailExists($emailAddress)
-  {
-    $count = User::where("email", $emailAddress)->count();
-
-    if($count == 0)
-    {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  public function verifyAccount($email, $password)
-  {
-    $providedPassword = "";
-
-    $count = User::where(["email" => $email])->count();
-
-    if($count == false)
-    {
-      return false;
-    }
-
-    $getUser = User::where("email", $email)->get();
-
-    foreach($getUser as $userInfo)
-    {
-      $providedPassword = $userInfo->password;
-      $active = $userInfo->activ;
-    }
-
-    if ($active == 0){
-      return false;
-    }
-
-    $verufyPassword = password_verify($password, $providedPassword);
-
-    if($verufyPassword == false)
-    {
-      return false;
-    }
-
-    return true;
-  }
-
   public function confirmEmail($request, $response)
   {
     if (!$request->getParam('code')) {
-        return $response->withRedirect($this->router->pathFor('home'));
+      $responseMessage = "Invalid activation code";
+      return $this->customResponse->is400Response($response, $responseMessage);
     }
+
+    $checkCode = CheckActivationCode::checkCode($request->getParam('code'));
+
+    if($checkCode == false)
+    {
+      $responseMessage = "Invalid activation code";
+      return $this->customResponse->is400Response($response, $responseMessage);
+    };
 
     $user = User::where('activ_code', $request->getParam('code'))->first();
     $user->activ = 1;
